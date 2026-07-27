@@ -5,8 +5,7 @@ trigger:
 - devops
 
 pool:
-  vmImage: 
-  - 'ubuntu-latest'
+  vmImage: 'ubuntu-latest'
 
 steps:
 - script: mvn validate
