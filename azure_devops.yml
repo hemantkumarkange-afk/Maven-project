@@ -1,0 +1,13 @@
+
+trigger:
+- main
+- master
+- devops
+
+pool:
+  vmImage: 
+  - 'ubuntu-latest'
+
+steps:
+- script: mvn validate
+  displayName: 'Validate Maven Project'
