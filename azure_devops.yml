@@ -10,3 +10,6 @@ pool:
 steps:
 - script: mvn validate
   displayName: 'Validate Maven Project'
+
+- script: mvn compile
+  displayName: 'Compile Maven Project'
