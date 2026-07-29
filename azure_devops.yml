@@ -18,7 +18,8 @@ steps:
 - script: mvn test
   displayName: 'Unit Test Framework Maven Project'
 
-
+- script: mvn package
+  displayName: 'Generate Build Package/Artifact Maven Project'
 
 #scripting options-2 form validation (no need to add validation 
 #heare because Mavaen is advance tool if we justmention the step3 then it auto run the step1&2 post that run step3)
@@ -34,6 +35,19 @@ steps:
 #- script: mvn compile
 #  displayName: 'Compile Maven Project'
 
+#scripting options-3 for test 
+
+#trigger:
+#- main
+#- master
+#- devops
+
+#pool:
+#  vmImage: 'ubuntu-latest's
+
+#steps:
+#- script: mvn test
+#  displayName: 'Unit Test Framework Maven Project'
 
 
 #scripting options-3 for test 
@@ -49,3 +63,6 @@ steps:
 #steps:
 #- script: mvn test
 #  displayName: 'Unit Test Framework Maven Project'
+
+#- script: mvn package
+#  displayName: 'Generate Build Package/Artifact Maven Project'
