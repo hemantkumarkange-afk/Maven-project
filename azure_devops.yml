@@ -20,6 +20,9 @@ steps:
 
 - script: mvn package
   displayName: 'Generate Build Package/Artifact Maven Project'
+  env:
+    MAVEN_OPTS: -DskipTests=true     # skip tests while buildinh the artifact/package
+    
 
 #scripting options-2 form validation (no need to add validation 
 #heare because Mavaen is advance tool if we justmention the step3 then it auto run the step1&2 post that run step3)
