@@ -1,3 +1,4 @@
+# Scripting option 1 (Main script)
 
 trigger:
 - main
@@ -5,7 +6,7 @@ trigger:
 - devops
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: 'ubuntu-latest'                   #Use MS-hosted Ubuntu agent
 
 steps:
 - script: mvn validate
@@ -13,6 +14,10 @@ steps:
 
 - script: mvn compile
   displayName: 'Compile Maven Project'
+
+- script: mvn test
+  displayName: 'Unit Test Framework Maven Project'
+
 
 
 #scripting options-2 form validation (no need to add validation 
@@ -28,3 +33,19 @@ steps:
 #steps:
 #- script: mvn compile
 #  displayName: 'Compile Maven Project'
+
+
+
+#scripting options-3 for test 
+
+#trigger:
+#- main
+#- master
+#- devops
+
+#pool:
+#  vmImage: 'ubuntu-latest's
+
+#steps:
+#- script: mvn test
+#  displayName: 'Unit Test Framework Maven Project'
