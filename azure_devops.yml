@@ -22,6 +22,18 @@ steps:
   displayName: 'Generate Build Package/Artifact Maven Project'
   env:
     MAVEN_OPTS: -DskipTests=true     # skip tests while buildinh the artifact/package
+
+- task: copyFiles@2
+  inputs:
+    #SourceFolder: '$/home/vsts/work/1/s/webapp/target' # Adjust the source folder path to match your Maven project structure
+    Contents: '**/target/*.war' #Adjust pattern to match your build output
+    TargetFolder: '$(Build.ArtifactStagingDirectory)' 
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: 'drop'
+    publishLocation: 'Container'
     
 
 #scripting options-2 form validation (no need to add validation 
