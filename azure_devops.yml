@@ -23,17 +23,24 @@ steps:
   env:
     MAVEN_OPTS: -DskipTests=true     # skip tests while buildinh the artifact/package
 
+- script: mvn install
+  displayName: 'copy the artifact to local repository'
+  env:
+    MAVEN_OPTS: -DskipTests=true
+
 - task: copyFiles@2
   inputs:
     #SourceFolder: '$/home/vsts/work/1/s/webapp/target' # Adjust the source folder path to match your Maven project structure
     Contents: '**/target/*.war' #Adjust pattern to match your build output
-    TargetFolder: '/home/vsts/work/'   #'$(Build.ArtifactStagingDirectory)' #'c:\agent_work\1\a' # Adjust the target folder path to match your desired artifact staging directory
+    TargetFolder: $(Build.ArtifactStagingDirectory)' #'/home/vsts/work/'   #'$(Build.ArtifactStagingDirectory)' #'c:\agent_work\1\a' # Adjust the target folder path to match your desired artifact staging directory
 
 - task: PublishBuildArtifacts@1
   inputs:
-    PathtoPublish: '/home/vsts/work/' #'$(Build.ArtifactStagingDirectory)'
+    PathtoPublish: $(Build.ArtifactStagingDirectory)' #'/home/vsts/work/' #'$(Build.ArtifactStagingDirectory)'
     ArtifactName: 'drop'
     publishLocation: 'Container'
+
+
     
 
 #scripting options-2 form validation (no need to add validation 
