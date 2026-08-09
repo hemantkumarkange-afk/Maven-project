@@ -11,13 +11,13 @@ pool:
 variables:
   # Date based Maven version
   # Example: 1.20260810.123
-  MAVEN_REVISION: '1.$(Build.BuildId)'
+  MAVEN_REVISION: '1.$(Build.sourceversiondate:ddMMyyyy).$(Build.BuildId)'  # Format: 1.YYYYMMDD.BuildID
 
 steps:
 
 # Generate Date + Build ID based Maven Version
 - script: |
-    BUILD_VERSION="1.$(date +%Y%m%d).$(Build.BuildId)"
+    BUILD_VERSION="1.$(Build.sourceversiondate:ddMMyyyy).$(Build.BuildId)"
     echo "Generated Maven Version: $BUILD_VERSION"
     echo "##vso[task.setvariable variable=MAVEN_REVISION]$BUILD_VERSION"
   displayName: 'Generate Date Based Maven Version'
