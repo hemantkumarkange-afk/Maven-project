@@ -16,7 +16,7 @@ variables:
 
   # Azure Artifacts Maven Feed
   azureArtifactsFeed: 'finance-1st-project-hemantkumar'
-  azureArtifactsUrl: 'https://pkgs.dev.azure.com/finance-1st-project-hemantkumar/hemantkumar1stproject/_packaging/finance-1st-project-hemantkumar/maven/v1'
+  azureArtifactsUrl: 'https://pkgs.dev.azure.com/finance-1st-project-hemantkumar/_packaging/finance-1st-project-hemantkumar/maven/v1'
 
   # Maven Coordinates
   mavenGroupId: 'com.example'
@@ -193,11 +193,13 @@ steps:
 
     # Deploy WAR to Azure Artifacts
     echo "Uploading WAR to Azure Artifacts Maven Feed..."
+    echo "MAVEN_SETTINGS_PATH=$MAVEN_SETTINGS_PATH"
+    ls -la "$MAVEN_SETTINGS_PATH" || true
 
-    mvn -X deploy:deploy-file \
+    mvn -X -s "$MAVEN_SETTINGS_PATH" deploy:deploy-file \
       -Dfile="$WAR_FILE" \
       -DpomFile="$(Build.ArtifactStagingDirectory)/upload-pom.xml" \
-      -DrepositoryId=$(azureArtifactsFeed) \
+      -DrepositoryId=azureArtifacts \
       -Durl="$(azureArtifactsUrl)"
 
     echo "========== Azure Artifacts Maven Upload END =========="
