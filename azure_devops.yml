@@ -14,7 +14,7 @@ pool:
 variables:
   MAVEN_REVISION: '1.$(Build.BuildId)'
   azureArtifactsFeed: 'finance-1st-project-hemantkumar'
-  azureArtifactsUrl: 'https://pkgs.dev.azure.com/finance-1st-project-hemantkumar/hemantkumar1stproject/_packaging/finance-1st-project-hemantkumar/maven/v1'
+  azureArtifactsUrl: 'https://pkgs.dev.azure.com/finance-1st-project-hemantkumar/_packaging/finance-1st-project-hemantkumar/maven/v1'
   mavenGroupId: 'com.example'
   mavenArtifactId: 'webapp'
 
@@ -169,15 +169,12 @@ steps:
 
     echo "Uploading WAR to Azure Artifacts Maven Feed..."
 
-    mvn -B deploy:deploy-file \
+    mvn -B -f "$(Build.ArtifactStagingDirectory)/upload-pom.xml" deploy:deploy-file \
       -Dfile="$WAR_FILE" \
-      -DgroupId="$(mavenGroupId)" \
-      -DartifactId="$(mavenArtifactId)" \
-      -Dversion="$(MAVEN_REVISION)" \
       -Dpackaging=war \
-      -DgeneratePom=true \
-      -DrepositoryId="$(azureArtifactsFeed)" \
-      -Durl="$(azureArtifactsUrl)"
+      -DrepositoryId=azureArtifacts \
+      -Durl="$(azureArtifactsUrl)" \
+      -DskipTests=true -DinteractiveMode=false
 
     echo "========== Azure Artifacts Upload END =========="
   displayName: 'Deploy WAR to Azure Artifacts Maven Feed'
