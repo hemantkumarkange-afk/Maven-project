@@ -169,12 +169,31 @@ steps:
 
     echo "Uploading WAR to Azure Artifacts Maven Feed..."
 
-    mvn -B -f "$(Build.ArtifactStagingDirectory)/upload-pom.xml" deploy:deploy-file \
+    echo "MAVEN_SETTINGS_PATH=$MAVEN_SETTINGS_PATH"
+    ls -la "$MAVEN_SETTINGS_PATH" || true
+    echo "---- settings.xml (first 200 lines) ----"
+    sed -n '1,200p' "$MAVEN_SETTINGS_PATH" || true
+
+    set +e
+    mvn -B -s "$MAVEN_SETTINGS_PATH" -f "$(Build.ArtifactStagingDirectory)/upload-pom.xml" deploy:deploy-file \
       -Dfile="$WAR_FILE" \
       -Dpackaging=war \
       -DrepositoryId=azureArtifacts \
       -Durl="$(azureArtifactsUrl)" \
       -DskipTests=true -DinteractiveMode=false
+    DEPLOY_EXIT_CODE=$?
+    set -e
+
+    if [ "$DEPLOY_EXIT_CODE" -ne 0 ]; then
+      echo "Maven deploy failed with exit code $DEPLOY_EXIT_CODE. Attempting fallback to storage upload (if key provided)..."
+      if [ -n "$(azureStorageAccountKey)" ]; then
+        az storage blob upload --account-name "$(storageAccountName)" --container-name "$(containerName)" --file "$WAR_FILE" --auth-mode key --account-key "$(azureStorageAccountKey)" --overwrite true
+        echo "Fallback upload completed."
+      else
+        echo "No storage account key provided; fallback skipped."
+      fi
+      exit $DEPLOY_EXIT_CODE
+    fi
 
     echo "========== Azure Artifacts Upload END =========="
   displayName: 'Deploy WAR to Azure Artifacts Maven Feed'
