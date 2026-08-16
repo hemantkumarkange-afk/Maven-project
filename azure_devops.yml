@@ -57,16 +57,13 @@ steps:
 
 
 - task: CopyFiles@2
+  displayName: 'Copy WAR to Artifact Staging'
   inputs:
-    # SourceFolder: '/home/vsts/work/1/s/webapp/target'
-    # Adjust the source folder path to match your Maven project structure
+    SourceFolder: '$(System.DefaultWorkingDirectory)'
     Contents: '**/target/*.war'
-    # Adjust pattern to match your build output
     TargetFolder: '$(Build.ArtifactStagingDirectory)'
-    # '/home/vsts/work/'
-    # '$(Build.ArtifactStagingDirectory)'
-    # 'c:\agent_work\1\a'
-    # Adjust the target folder path to match your desired artifact staging directory
+    flattenFolders: true
+
 
 - task: AzureCLI@2
   displayName: 'Upload WAR to Azure Blob Storage'
@@ -75,29 +72,32 @@ steps:
     scriptType: 'bash'
     scriptLocation: 'inlineScript'
     inlineScript: |
-      echo "Diagnostic: listing artifact staging directory"
-      echo "Build.ArtifactStagingDirectory=$(Build.ArtifactStagingDirectory)"
-      ls -la "$(Build.ArtifactStagingDirectory)" || true
-      echo "Diagnostic: pipeline variables"
-      echo "storageAccountName=$(storageAccountName)"
-      echo "containerName=$(containerName)"
-      echo "MAVEN_REVISION=$(MAVEN_REVISION)"
 
-      echo "Ensuring storage container exists (using --auth-mode login)..."
+      echo "========== Azure Blob Upload START =========="
+
+      set -e
+
+      WAR_COUNT=$(find "$(Build.ArtifactStagingDirectory)" -type f -name "*.war" | wc -l)
+
+      if [ "$WAR_COUNT" -eq 0 ]; then
+        echo "ERROR: No WAR file found."
+        exit 1
+      fi
+
       az storage container create \
         --name "$(containerName)" \
         --account-name "$(storageAccountName)" \
-        --auth-mode login || true
+        --auth-mode login
 
-      echo "Uploading WAR artifacts from staging directory (upload-batch, --auth-mode login)..."
       az storage blob upload-batch \
         --account-name "$(storageAccountName)" \
         --destination "$(containerName)" \
         --source "$(Build.ArtifactStagingDirectory)" \
         --pattern "*.war" \
-        --auth-mode login
+        --auth-mode login \
+        --overwrite true
 
-      echo "Upload step completed."
+      echo "========== Azure Blob Upload END =========="
 
 - task: PublishBuildArtifacts@1
   inputs:
