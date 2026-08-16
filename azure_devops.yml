@@ -70,17 +70,16 @@ steps:
 
 - task: AzureCLI@2
   inputs:
-    connectedServiceName: 'Azure-Portal-Service-Connection'
+    azureSubscription: 'Azure-Portal-Service-Connection'
     scriptType: 'bash'
     scriptLocation: 'inlineScript'
     inlineScript: |
-      azlogin --service-principal -u $(azureServicePrincipalId) -p $(azureServicePrincipalKey) --tenant $(azureTenantId)
       echo "Uploading artifact to Azure Storage..."
       az storage blob upload \
         --account-name $(azureStorageAccountName) \
         --container-name $(azureStorageContainerName) \
-        --file /home/vsts/work/1/s/webapp/target/webapp.war \
-        --auth-mode login key 
+        --file "$(Build.ArtifactStagingDirectory)/webapp.war" \
+        --auth-mode login
       echo "Artifact uploaded successfully."
 
 - task: PublishBuildArtifacts@1
