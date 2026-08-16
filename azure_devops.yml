@@ -68,6 +68,20 @@ steps:
     # 'c:\agent_work\1\a'
     # Adjust the target folder path to match your desired artifact staging directory
 
+- task: AzureCLI@2
+  inputs:
+    connectedServiceName: 'Azure-Portal-Service-Connection'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      azlogin --service-principal -u $(azureServicePrincipalId) -p $(azureServicePrincipalKey) --tenant $(azureTenantId)
+      echo "Uploading artifact to Azure Storage..."
+      az storage blob upload \
+        --account-name $(azureStorageAccountName) \
+        --container-name $(azureStorageContainerName) \
+        --file /home/vsts/work/1/s/webapp/target/webapp.war \
+        --auth-mode login key 
+      echo "Artifact uploaded successfully."
 
 - task: PublishBuildArtifacts@1
   inputs:
