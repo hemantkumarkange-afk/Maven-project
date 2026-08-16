@@ -74,13 +74,19 @@ steps:
     scriptType: 'bash'
     scriptLocation: 'inlineScript'
     inlineScript: |
-      echo "Uploading artifact to Azure Storage..."
-      az storage blob upload \
-        --account-name $(azureStorageAccountName) \
-        --container-name $(azureStorageContainerName) \
-        --file "$(Build.ArtifactStagingDirectory)/webapp.war" \
+      echo "Ensuring Azure Storage container exists..."
+      az storage container create \
+        --name "$(azureStorageContainerName)" \
+        --account-name "$(azureStorageAccountName)" \
+        --auth-mode login || true
+      echo "Uploading WAR artifacts from staging directory..."
+      az storage blob upload-batch \
+        --account-name "$(azureStorageAccountName)" \
+        --destination "$(azureStorageContainerName)" \
+        --source "$(Build.ArtifactStagingDirectory)" \
+        --pattern "*.war" \
         --auth-mode login
-      echo "Artifact uploaded successfully."
+      echo "Upload completed."
 
 - task: PublishBuildArtifacts@1
   inputs:
