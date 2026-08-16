@@ -1,16 +1,17 @@
 # Scripting option 1 (Main script)
 
+# Scripting option 1 (Main script)
+
 trigger:
 - main
 - master
 - devops
 
 pool:
-  vmImage: 'ubuntu-latest'                   # Use MS-hosted Ubuntu agent
+  vmImage: 'ubuntu-latest'
 
 variables:
-  # Date based Maven version
-  # Example: 1.20260810.123
+  # Date + Build ID based Maven Version
   MAVEN_REVISION: '1.$(Build.BuildId)'
 
 steps:
@@ -23,39 +24,48 @@ steps:
   displayName: 'Generate Date Based Maven Version'
 
 
+# Validate Maven Project
 - script: mvn -Drevision=$(MAVEN_REVISION) validate
   displayName: 'Validate Maven Project'
 
 
+# Compile Maven Project
 - script: mvn -Drevision=$(MAVEN_REVISION) compile
   displayName: 'Compile Maven Project'
 
 
+# Unit Test
 - script: mvn -Drevision=$(MAVEN_REVISION) test
   displayName: 'Unit Test Framework Maven Project'
 
 
+# Set Dynamic Maven Version
 - script: mvn versions:set -DnewVersion=$(MAVEN_REVISION)
   displayName: 'Set Maven Project Dynamic Version'
 
 
+# Generate WAR Artifact
 - script: mvn -Drevision=$(MAVEN_REVISION) package
   displayName: 'Generate Build Package/Artifact Maven Project'
   env:
-    MAVEN_OPTS: -DskipTests=true     # Skip tests while building the artifact/package
+    MAVEN_OPTS: -DskipTests=true
 
 
+# Copy artifact to local Maven repository
 - script: mvn -Drevision=$(MAVEN_REVISION) install
   displayName: 'Copy the artifact to local repository'
   env:
     MAVEN_OPTS: -DskipTests=true
 
+
+# Verify Artifact
 - script: mvn -Drevision=$(MAVEN_REVISION) verify
   displayName: 'Verify the artifact/package'
   env:
     MAVEN_OPTS: -DskipTests=true
 
 
+# Copy WAR to Artifact Staging Directory
 - task: CopyFiles@2
   displayName: 'Copy WAR to Artifact Staging'
   inputs:
@@ -65,6 +75,7 @@ steps:
     flattenFolders: true
 
 
+# Upload WAR to Azure Blob Storage
 - task: AzureCLI@2
   displayName: 'Upload WAR to Azure Blob Storage'
   inputs:
@@ -80,7 +91,7 @@ steps:
       WAR_COUNT=$(find "$(Build.ArtifactStagingDirectory)" -type f -name "*.war" | wc -l)
 
       if [ "$WAR_COUNT" -eq 0 ]; then
-        echo "ERROR: No WAR file found."
+        echo "ERROR: No WAR file found in Artifact Staging Directory."
         exit 1
       fi
 
@@ -99,11 +110,12 @@ steps:
 
       echo "========== Azure Blob Upload END =========="
 
+
+# Publish Pipeline Artifact
 - task: PublishBuildArtifacts@1
+  displayName: 'Publish Build Artifact'
   inputs:
     PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-    # '/home/vsts/work/'
-    # '$(Build.ArtifactStagingDirectory)'
     ArtifactName: 'drop'
     publishLocation: 'Container'
     
