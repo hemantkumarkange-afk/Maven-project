@@ -179,13 +179,13 @@ steps:
     cat > "$(Build.ArtifactStagingDirectory)/upload-pom.xml" <<EOF
     <?xml version="1.0" encoding="UTF-8"?>
     <project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-    <groupId>$(mavenGroupId)</groupId>
-    <artifactId>$(mavenArtifactId)</artifactId>
-    <version>$(MAVEN_REVISION)</version>
-    <packaging>war</packaging>
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+      <modelVersion>4.0.0</modelVersion>
+      <groupId>$(mavenGroupId)</groupId>
+      <artifactId>$(mavenArtifactId)</artifactId>
+      <version>$(MAVEN_REVISION)</version>
+      <packaging>war</packaging>
     </project>
     EOF
 
@@ -194,10 +194,10 @@ steps:
     # Deploy WAR to Azure Artifacts
     echo "Uploading WAR to Azure Artifacts Maven Feed..."
 
-    mvn -e deploy:deploy-file \
+    mvn -X deploy:deploy-file \
       -Dfile="$WAR_FILE" \
       -DpomFile="$(Build.ArtifactStagingDirectory)/upload-pom.xml" \
-      -DrepositoryId="$(azureArtifactsFeed)" \
+      -DrepositoryId=$(azureArtifactsFeed) \
       -Durl="$(azureArtifactsUrl)"
 
     echo "========== Azure Artifacts Maven Upload END =========="
