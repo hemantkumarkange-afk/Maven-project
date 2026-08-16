@@ -69,24 +69,38 @@ steps:
     # Adjust the target folder path to match your desired artifact staging directory
 
 - task: AzureCLI@2
+  displayName: 'Upload WAR to Azure Blob Storage'
   inputs:
     azureSubscription: 'Azure-Portal-Service-Connection'
     scriptType: 'bash'
     scriptLocation: 'inlineScript'
     inlineScript: |
-      echo "Ensuring Azure Storage container exists..."
+
+      echo "========== Azure Blob Upload START =========="
+
+      set -e
+
       az storage container create \
         --name "$(azureStorageContainerName)" \
         --account-name "$(azureStorageAccountName)" \
-        --auth-mode login || true
-      echo "Uploading WAR artifacts from staging directory..."
+        --auth-mode login
+
+      WAR_COUNT=$(find "$(Build.ArtifactStagingDirectory)" -type f -name "*.war" | wc -l)
+
+      if [ "$WAR_COUNT" -eq 0 ]; then
+        echo "ERROR: No WAR file found in Artifact Staging Directory."
+        exit 1
+      fi
+
       az storage blob upload-batch \
         --account-name "$(azureStorageAccountName)" \
         --destination "$(azureStorageContainerName)" \
         --source "$(Build.ArtifactStagingDirectory)" \
         --pattern "*.war" \
-        --auth-mode login
-      echo "Upload completed."
+        --auth-mode login \
+        --overwrite true
+
+      echo "========== Azure Blob Upload END =========="
 
 - task: PublishBuildArtifacts@1
   inputs:
