@@ -2,6 +2,7 @@
 # ============================================================
 # Maven Project - Complete CI/CD Pipeline
 # ============================================================
+
 trigger:
 - main
 - master
@@ -11,20 +12,15 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  # Maven Version
   MAVEN_REVISION: '1.$(Build.BuildId)'
-
-  # Azure Artifacts Maven Feed
   azureArtifactsFeed: 'finance-1st-project-hemantkumar'
-  azureArtifactsUrl: 'https://pkgs.dev.azure.com/finance-1st-project-hemantkumar/_packaging/finance-1st-project-hemantkumar/maven/v1'
-
-  # Maven Coordinates
+  azureArtifactsUrl: 'https://pkgs.dev.azure.com/finance-1st-project-hemantkumar/hemantkumar1stproject/_packaging/finance-1st-project-hemantkumar/maven/v1'
   mavenGroupId: 'com.example'
   mavenArtifactId: 'webapp'
 
 steps:
 
-# Generate Date + Build ID Based Maven Version
+# Generate Date Based Maven Version
 - script: |
     BUILD_VERSION="1.$(date +%Y%m%d%H%M).$(Build.BuildId)"
     echo "Generated Maven Version: $BUILD_VERSION"
@@ -81,7 +77,7 @@ steps:
     TargetFolder: '$(Build.ArtifactStagingDirectory)'
     flattenFolders: true
 
-# Check WAR File
+# Verify WAR Artifact
 - script: |
     echo "========== WAR CHECK START =========="
     echo "Artifact Staging Directory:"
@@ -118,14 +114,11 @@ steps:
       fi
 
       echo "WAR files found: $WAR_COUNT"
-      echo "Creating storage container if required..."
 
       az storage container create \
         --name "$(containerName)" \
         --account-name "$(storageAccountName)" \
         --auth-mode login
-
-      echo "Uploading WAR to Azure Blob Storage..."
 
       az storage blob upload-batch \
         --account-name "$(storageAccountName)" \
@@ -151,18 +144,19 @@ steps:
   inputs:
     artifactsFeeds: '$(azureArtifactsFeed)'
 
-# Publish WAR to Azure Artifacts Maven Feed
-# No permanent pom.xml changes required
+# Upload WAR to Azure Artifacts Maven Feed
 - script: |
-    echo "========== Azure Artifacts Maven Upload START =========="
+    echo "========== Azure Artifacts Upload START =========="
     set -e
 
     echo "Feed: $(azureArtifactsFeed)"
-    echo "Maven Version: $(MAVEN_REVISION)"
-    echo "Artifact Staging Directory:"
+    echo "Version: $(MAVEN_REVISION)"
+    echo "Group ID: $(mavenGroupId)"
+    echo "Artifact ID: $(mavenArtifactId)"
+
+    echo "Checking Artifact Staging Directory:"
     ls -la "$(Build.ArtifactStagingDirectory)"
 
-    # Find WAR file
     WAR_FILE=$(find "$(Build.ArtifactStagingDirectory)" -type f -name "*.war" | head -1)
 
     if [ -z "$WAR_FILE" ]; then
@@ -173,36 +167,19 @@ steps:
     echo "WAR file selected:"
     echo "$WAR_FILE"
 
-    # Create temporary POM
-    echo "Creating temporary POM..."
-
-    cat > "$(Build.ArtifactStagingDirectory)/upload-pom.xml" <<EOF
-    <?xml version="1.0" encoding="UTF-8"?>
-    <project xmlns="http://maven.apache.org/POM/4.0.0"
-             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-             xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-      <modelVersion>4.0.0</modelVersion>
-      <groupId>$(mavenGroupId)</groupId>
-      <artifactId>$(mavenArtifactId)</artifactId>
-      <version>$(MAVEN_REVISION)</version>
-      <packaging>war</packaging>
-    </project>
-    EOF
-
-    echo "Temporary POM created successfully."
-
-    # Deploy WAR to Azure Artifacts
     echo "Uploading WAR to Azure Artifacts Maven Feed..."
-    echo "MAVEN_SETTINGS_PATH=$MAVEN_SETTINGS_PATH"
-    ls -la "$MAVEN_SETTINGS_PATH" || true
 
-    mvn -X -s "$MAVEN_SETTINGS_PATH" deploy:deploy-file \
+    mvn -B deploy:deploy-file \
       -Dfile="$WAR_FILE" \
-      -DpomFile="$(Build.ArtifactStagingDirectory)/upload-pom.xml" \
-      -DrepositoryId=azureArtifacts \
+      -DgroupId="$(mavenGroupId)" \
+      -DartifactId="$(mavenArtifactId)" \
+      -Dversion="$(MAVEN_REVISION)" \
+      -Dpackaging=war \
+      -DgeneratePom=true \
+      -DrepositoryId="$(azureArtifactsFeed)" \
       -Durl="$(azureArtifactsUrl)"
 
-    echo "========== Azure Artifacts Maven Upload END =========="
+    echo "========== Azure Artifacts Upload END =========="
   displayName: 'Deploy WAR to Azure Artifacts Maven Feed'
 
 #scripting options-2 form validation (no need to add validation 
