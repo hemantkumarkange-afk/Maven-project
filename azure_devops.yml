@@ -50,6 +50,11 @@ steps:
   env:
     MAVEN_OPTS: -DskipTests=true
 
+- script: mvn -Drevision=$(MAVEN_REVISION) verify
+  displayName: 'Verify the artifact/package'
+  env:
+    MAVEN_OPTS: -DskipTests=true
+
 
 - task: CopyFiles@2
   inputs:
