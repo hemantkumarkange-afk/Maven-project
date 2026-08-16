@@ -13,6 +13,11 @@ pool:
 variables:
   # Date + Build ID based Maven Version
   MAVEN_REVISION: '1.$(Build.BuildId)'
+  # Azure Artifacts feed and Maven coordinates (override in pipeline variables if needed)
+  azureArtifactsFeed: 'finance-1st-project-hemantkumar'
+  azureArtifactsUrl: 'https://pkgs.dev.azure.com/finance-1st-project-hemantkumar/_packaging/finance-1st-project-hemantkumar/maven/v1'
+  mavenGroupId: 'com.example'
+  mavenArtifactId: 'webapp'
 
 steps:
 
@@ -119,6 +124,38 @@ steps:
     ArtifactName: 'drop'
     publishLocation: 'Container'
     
+
+# Publish WAR(s) to Azure Artifacts Maven feed (no pom.xml changes)
+- task: MavenAuthenticate@0
+  displayName: 'Authenticate to Azure Artifacts Maven feed'
+  inputs:
+    artifactsFeeds: '$(azureArtifactsFeed)'
+
+- script: |
+    echo "Looking for WAR files in $(Build.ArtifactStagingDirectory)"
+    ls -la "$(Build.ArtifactStagingDirectory)" || true
+    COUNT=0
+    for f in "$(Build.ArtifactStagingDirectory)"/*.war; do
+      if [ -f "$f" ]; then
+        COUNT=$((COUNT+1))
+        echo "Publishing $f to feed $(azureArtifactsFeed)"
+        mvn deploy:deploy-file \
+          -DgroupId=$(mavenGroupId) \
+          -DartifactId=$(mavenArtifactId) \
+          -Dversion=$(MAVEN_REVISION) \
+          -Dpackaging=war \
+          -Dfile="$f" \
+          -DrepositoryId=azureArtifacts \
+          -Durl="$(azureArtifactsUrl)"
+      fi
+    done
+    if [ "$COUNT" -eq 0 ]; then
+      echo "No WAR files found to publish."
+    else
+      echo "Published $COUNT WAR(s)."
+    fi
+  displayName: 'Deploy WAR(s) to Azure Artifacts Maven feed'
+
 
 #scripting options-2 form validation (no need to add validation 
 #heare because Mavaen is advance tool if we justmention the step3 then it auto run the step1&2 post that run step3)
