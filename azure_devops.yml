@@ -75,32 +75,15 @@ steps:
     scriptType: 'bash'
     scriptLocation: 'inlineScript'
     inlineScript: |
-
-      echo "========== Azure Blob Upload START =========="
-
-      set -e
-
-      az storage container create \
-        --name "$(azureStorageContainerName)" \
-        --account-name "$(azureStorageAccountName)" \
-        --auth-mode login
-
-      WAR_COUNT=$(find "$(Build.ArtifactStagingDirectory)" -type f -name "*.war" | wc -l)
-
-      if [ "$WAR_COUNT" -eq 0 ]; then
-        echo "ERROR: No WAR file found in Artifact Staging Directory."
-        exit 1
-      fi
-
-      az storage blob upload-batch \
-        --account-name "$(azureStorageAccountName)" \
-        --destination "$(azureStorageContainerName)" \
-        --source "$(Build.ArtifactStagingDirectory)" \
-        --pattern "*.war" \
-        --auth-mode login \
-        --overwrite true
-
-      echo "========== Azure Blob Upload END =========="
+      az login --service-principal -u $(servicePrincipalId) -p $(servicePrincipalKey) --tenant $(tenantId)
+      echo "Uploading WAR file to Azure Blob Storage..."
+      az storage blob upload \
+        --account-name $(storageAccountName) \
+        --container-name $(containerName) \
+        --file "$(Build.ArtifactStagingDirectory)/webapp.war" \
+        --name "maven-artifact-$(MAVEN_REVISION).war" \
+        --auth-mode key 
+      echio "WAR file uploaded successfully to Azure Blob Storage."
 
 - task: PublishBuildArtifacts@1
   inputs:
