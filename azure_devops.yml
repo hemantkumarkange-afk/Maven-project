@@ -1,7 +1,5 @@
 # Scripting option 1 (Main script)
 
-# Scripting option 1 (Main script)
-
 trigger:
 - main
 - master
@@ -11,17 +9,26 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
+
   # Date + Build ID based Maven Version
   MAVEN_REVISION: '1.$(Build.BuildId)'
-  # Azure Artifacts feed and Maven coordinates (override in pipeline variables if needed)
+
+  # Azure Artifacts Maven Feed
   azureArtifactsFeed: 'finance-1st-project-hemantkumar'
-  azureArtifactsUrl: 'https://pkgs.dev.azure.com/finance-1st-project-hemantkumar/_packaging/finance-1st-project-hemantkumar/maven/v1'
+
+  # Azure Artifacts Maven URL
+  azureArtifactsUrl: 'https://pkgs.dev.azure.com/finance-1st-project-hemantkumar/hemantkumar1stproject/_packaging/finance-1st-project-hemantkumar/maven/v1'
+
+  # Maven coordinates
   mavenGroupId: 'com.example'
   mavenArtifactId: 'webapp'
 
 steps:
 
-# Generate Date + Build ID based Maven Version
+# ============================================================
+# Generate Date Based Maven Version
+# ============================================================
+
 - script: |
     BUILD_VERSION="1.$(date +%Y%m%d%H%M).$(Build.BuildId)"
     echo "Generated Maven Version: $BUILD_VERSION"
@@ -29,48 +36,79 @@ steps:
   displayName: 'Generate Date Based Maven Version'
 
 
+# ============================================================
 # Validate Maven Project
-- script: mvn -Drevision=$(MAVEN_REVISION) validate
+# ============================================================
+
+- script: |
+    mvn -Drevision=$(MAVEN_REVISION) validate
   displayName: 'Validate Maven Project'
 
 
+# ============================================================
 # Compile Maven Project
-- script: mvn -Drevision=$(MAVEN_REVISION) compile
+# ============================================================
+
+- script: |
+    mvn -Drevision=$(MAVEN_REVISION) compile
   displayName: 'Compile Maven Project'
 
 
+# ============================================================
 # Unit Test
-- script: mvn -Drevision=$(MAVEN_REVISION) test
+# ============================================================
+
+- script: |
+    mvn -Drevision=$(MAVEN_REVISION) test
   displayName: 'Unit Test Framework Maven Project'
 
 
+# ============================================================
 # Set Dynamic Maven Version
-- script: mvn versions:set -DnewVersion=$(MAVEN_REVISION)
+# ============================================================
+
+- script: |
+    mvn versions:set -DnewVersion=$(MAVEN_REVISION)
   displayName: 'Set Maven Project Dynamic Version'
 
 
-# Generate WAR Artifact
-- script: mvn -Drevision=$(MAVEN_REVISION) package
+# ============================================================
+# Generate WAR
+# ============================================================
+
+- script: |
+    mvn -Drevision=$(MAVEN_REVISION) package
   displayName: 'Generate Build Package/Artifact Maven Project'
   env:
     MAVEN_OPTS: -DskipTests=true
 
 
-# Copy artifact to local Maven repository
-- script: mvn -Drevision=$(MAVEN_REVISION) install
+# ============================================================
+# Install Artifact
+# ============================================================
+
+- script: |
+    mvn -Drevision=$(MAVEN_REVISION) install
   displayName: 'Copy the artifact to local repository'
   env:
     MAVEN_OPTS: -DskipTests=true
 
 
+# ============================================================
 # Verify Artifact
-- script: mvn -Drevision=$(MAVEN_REVISION) verify
+# ============================================================
+
+- script: |
+    mvn -Drevision=$(MAVEN_REVISION) verify
   displayName: 'Verify the artifact/package'
   env:
     MAVEN_OPTS: -DskipTests=true
 
 
-# Copy WAR to Artifact Staging Directory
+# ============================================================
+# Copy WAR to Artifact Staging
+# ============================================================
+
 - task: CopyFiles@2
   displayName: 'Copy WAR to Artifact Staging'
   inputs:
@@ -80,7 +118,10 @@ steps:
     flattenFolders: true
 
 
+# ============================================================
 # Upload WAR to Azure Blob Storage
+# ============================================================
+
 - task: AzureCLI@2
   displayName: 'Upload WAR to Azure Blob Storage'
   inputs:
@@ -96,7 +137,7 @@ steps:
       WAR_COUNT=$(find "$(Build.ArtifactStagingDirectory)" -type f -name "*.war" | wc -l)
 
       if [ "$WAR_COUNT" -eq 0 ]; then
-        echo "ERROR: No WAR file found in Artifact Staging Directory."
+        echo "ERROR: No WAR file found."
         exit 1
       fi
 
@@ -116,45 +157,65 @@ steps:
       echo "========== Azure Blob Upload END =========="
 
 
+# ============================================================
 # Publish Pipeline Artifact
+# ============================================================
+
 - task: PublishBuildArtifacts@1
   displayName: 'Publish Build Artifact'
   inputs:
     PathtoPublish: '$(Build.ArtifactStagingDirectory)'
     ArtifactName: 'drop'
     publishLocation: 'Container'
-    
 
-# Publish WAR(s) to Azure Artifacts Maven feed (no pom.xml changes)
+
+# ============================================================
+# Authenticate to Azure Artifacts Maven Feed
+# ============================================================
+
 - task: MavenAuthenticate@0
-  displayName: 'Authenticate to Azure Artifacts Maven feed'
+  displayName: 'Authenticate to Azure Artifacts Maven Feed'
   inputs:
     artifactsFeeds: '$(azureArtifactsFeed)'
 
+
+# ============================================================
+# Publish WAR to Azure Artifacts Maven Feed
+# ============================================================
+
 - script: |
-    echo "Looking for WAR files in $(Build.ArtifactStagingDirectory)"
-    ls -la "$(Build.ArtifactStagingDirectory)" || true
-    COUNT=0
-    for f in "$(Build.ArtifactStagingDirectory)"/*.war; do
-      if [ -f "$f" ]; then
-        COUNT=$((COUNT+1))
-        echo "Publishing $f to feed $(azureArtifactsFeed)"
-        mvn deploy:deploy-file \
-          -DgroupId=$(mavenGroupId) \
-          -DartifactId=$(mavenArtifactId) \
-          -Dversion=$(MAVEN_REVISION) \
-          -Dpackaging=war \
-          -Dfile="$f" \
-          -DrepositoryId=azureArtifacts \
-          -Durl="$(azureArtifactsUrl)"
-      fi
-    done
-    if [ "$COUNT" -eq 0 ]; then
-      echo "No WAR files found to publish."
-    else
-      echo "Published $COUNT WAR(s)."
+
+    echo "========== Azure Artifacts Maven Upload START =========="
+
+    set -e
+
+    echo "Maven Feed: $(azureArtifactsFeed)"
+    echo "Maven Version: $(MAVEN_REVISION)"
+    echo "Artifact Staging Directory:"
+    ls -la "$(Build.ArtifactStagingDirectory)"
+
+    WAR_FILE=$(find "$(Build.ArtifactStagingDirectory)" -type f -name "*.war" | head -1)
+
+    if [ -z "$WAR_FILE" ]; then
+      echo "ERROR: No WAR file found."
+      exit 1
     fi
-  displayName: 'Deploy WAR(s) to Azure Artifacts Maven feed'
+
+    echo "WAR File: $WAR_FILE"
+
+    mvn deploy:deploy-file \
+      -Dfile="$WAR_FILE" \
+      -DgroupId="$(mavenGroupId)" \
+      -DartifactId="$(mavenArtifactId)" \
+      -Dversion="$(MAVEN_REVISION)" \
+      -Dpackaging=war \
+      -DgeneratePom=true \
+      -DrepositoryId="$(azureArtifactsFeed)" \
+      -Durl="$(azureArtifactsUrl)"
+
+    echo "========== Azure Artifacts Maven Upload END =========="
+
+  displayName: 'Deploy WAR to Azure Artifacts Maven Feed'
 
 
 #scripting options-2 form validation (no need to add validation 
