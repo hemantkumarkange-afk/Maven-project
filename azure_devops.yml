@@ -169,13 +169,49 @@ steps:
 
     echo "Uploading WAR to Azure Artifacts Maven Feed..."
 
-    echo "MAVEN_SETTINGS_PATH=$MAVEN_SETTINGS_PATH"
-    ls -la "$MAVEN_SETTINGS_PATH" || true
-    echo "---- settings.xml (first 200 lines) ----"
-    sed -n '1,200p' "$MAVEN_SETTINGS_PATH" || true
+    # Create temporary POM in staging directory
+    echo "Creating temporary POM..."
+    cat > "$(Build.ArtifactStagingDirectory)/upload-pom.xml" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>$(mavenGroupId)</groupId>
+  <artifactId>$(mavenArtifactId)</artifactId>
+  <version>$(MAVEN_REVISION)</version>
+  <packaging>war</packaging>
+</project>
+EOF
+    echo "Temporary POM created at $(Build.ArtifactStagingDirectory)/upload-pom.xml"
+
+    # Determine Maven settings path (MavenAuthenticate may write to a variable or default ~/.m2/settings.xml)
+    SETTINGS_FILE="$MAVEN_SETTINGS_PATH"
+    if [ -z "$SETTINGS_FILE" ] || [ ! -f "$SETTINGS_FILE" ]; then
+      if [ -f "$HOME/.m2/settings.xml" ]; then
+        SETTINGS_FILE="$HOME/.m2/settings.xml"
+      else
+        SETTINGS_FILE=""
+      fi
+    fi
+
+    echo "MAVEN_SETTINGS_PATH=$SETTINGS_FILE"
+    if [ -n "$SETTINGS_FILE" ]; then
+      ls -la "$SETTINGS_FILE" || true
+      echo "---- settings.xml (first 200 lines) ----"
+      sed -n '1,200p' "$SETTINGS_FILE" || true
+    else
+      echo "No settings.xml found. Maven will run without custom settings."
+    fi
 
     set +e
-    mvn -B -s "$MAVEN_SETTINGS_PATH" -f "$(Build.ArtifactStagingDirectory)/upload-pom.xml" deploy:deploy-file \
+    if [ -n "$SETTINGS_FILE" ]; then
+      MVN_SETTINGS_ARG="-s \"$SETTINGS_FILE\""
+    else
+      MVN_SETTINGS_ARG=""
+    fi
+
+    eval mvn -B $MVN_SETTINGS_ARG -f "$(Build.ArtifactStagingDirectory)/upload-pom.xml" deploy:deploy-file \
       -Dfile="$WAR_FILE" \
       -Dpackaging=war \
       -DrepositoryId=azureArtifacts \
