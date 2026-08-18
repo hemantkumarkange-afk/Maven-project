@@ -23,6 +23,11 @@
   </modules>
 
   <distributionManagement>
+    <repository>
+      <id>finance-1st-project-hemantkumar</id>
+      <name>finance-1st-project-hemantkumar</name>
+      <url>https://pkgs.dev.azure.com/finance-1st-project-hemantkumar/_packaging/finance-1st-project-hemantkumar/maven/v1</url>
+    </repository>
     <site>
       <id>site-server</id>
       <name>Test Project Site</name>

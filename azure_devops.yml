@@ -142,44 +142,21 @@ steps:
   inputs:
     artifactsFeeds: '$(azureArtifactsFeed)'
 
-# Upload WAR to Azure Artifacts Maven Feed
+# Deploy the Maven project to the Azure Artifacts feed.
+# This uses the feed's Maven credentials instead of a manual deploy-file upload.
 - script: |
-    echo "========== Azure Artifacts Upload START =========="
+    echo "========== Azure Artifacts Deploy START =========="
     set -e
 
     echo "Feed: $(azureArtifactsFeed)"
     echo "Version: $(MAVEN_REVISION)"
-    echo "Group ID: $(mavenGroupId)"
-    echo "Artifact ID: $(mavenArtifactId)"
 
-    WAR_FILE=$(find "$(Build.ArtifactStagingDirectory)" -type f -name "*.war" | head -1)
+    mvn -Drevision=$(MAVEN_REVISION) deploy -DskipTests=true
 
-    if [ -z "$WAR_FILE" ]; then
-      echo "ERROR: WAR file not found."
-      exit 1
-    fi
-
-    echo "WAR file selected: $WAR_FILE"
-    echo "Uploading WAR using System Access Token to bypass 403 scope block..."
-
-    # FIX: थेट System.AccessToken वापरून ऑथेंटिकेशन सिस्टीम बायपास करणे जेणेकरून AddPackage एरर येणार नाही.
-    mvn deploy:deploy-file \
-      -Dfile="$WAR_FILE" \
-      -Dpackaging=war \
-      -DgroupId="$(mavenGroupId)" \
-      -DartifactId="$(mavenArtifactId)" \
-      -Dversion="$(MAVEN_REVISION)" \
-      -DrepositoryId="finance-1st-project-hemantkumar" \
-      -Durl="$(azureArtifactsUrl)" \
-      -DskipTests=true \
-      -DinteractiveMode=false \
-      -Dusername="AzureDevOps" \
-      -Dpassword="$(System.AccessToken)"
-
-    echo "========== Azure Artifacts Upload END =========="
-  displayName: 'Deploy WAR to Azure Artifacts Maven Feed'
+    echo "========== Azure Artifacts Deploy END =========="
+  displayName: 'Deploy Maven artifacts to Azure Artifacts Feed'
   env:
-    SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+    MAVEN_OPTS: -DskipTests=true
 
 #scripting options-2 form validation (no need to add validation 
 #heare because Mavaen is advance tool if we justmention the step3 then it auto run the step1&2 post that run step3)
