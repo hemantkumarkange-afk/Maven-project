@@ -9,11 +9,8 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  MAVEN_REVISION: '1.$(Build.BuildId)'
-  azureArtifactsFeed: 'finance-1st-project-hemantkumar'
-  azureArtifactsUrl: 'https://pkgs.dev.azure.com/finance-1st-project-hemantkumar/_packaging/finance-1st-project-hemantkumar/maven/v1'
-  mavenGroupId: 'com.example'
-  mavenArtifactId: 'webapp'
+  azureArtifactsFeed: 'hemantkumar1stproject'
+  azureArtifactsUrl: 'https://pkgs.dev.azure.com/finance-1st-project-hemantkumar/hemantkumar1stproject/_packaging/hemantkumar1stproject/maven/v1'
 
 steps:
 
@@ -26,30 +23,30 @@ steps:
 
 # Validate Maven Project
 - script: |
-    mvn -Drevision=$(MAVEN_REVISION) validate
+    mvn validate
   displayName: 'Validate Maven Project'
 
 # Compile Maven Project
 - script: |
-    mvn -Drevision=$(MAVEN_REVISION) compile
+    mvn compile
   displayName: 'Compile Maven Project'
 
 # Unit Test
 - script: |
-    mvn -Drevision=$(MAVEN_REVISION) test
-  displayName: 'Unit Test Framework Maven Project'
+    mvn test
+  displayName: 'Unit Test Maven Project'
 
 # Set Dynamic Maven Version
 - script: |
+    echo "Setting Maven Version to: $(MAVEN_REVISION)"
     mvn versions:set -DnewVersion=$(MAVEN_REVISION)
-  displayName: 'Set Maven Project Dynamic Version'
+  displayName: 'Set Dynamic Maven Version'
 
 # Generate WAR Artifact
 - script: |
-    mvn -Drevision=$(MAVEN_REVISION) package
-  displayName: 'Generate Build Package/Artifact Maven Project'
-  env:
-    MAVEN_OPTS: -DskipTests=true
+    mvn package -DskipTests=true
+  displayName: 'Generate WAR Package'
+
 
 # Upload WAR to Azure Blob Storage
 #- task: AzureCLI@2
@@ -86,21 +83,6 @@ steps:
 
       #echo "========== Azure Blob Upload END =========="
 
-
-# Install Artifact to Local Maven Repository
-- script: |
-    mvn -Drevision=$(MAVEN_REVISION) install
-  displayName: 'Copy the artifact to local repository'
-  env:
-    MAVEN_OPTS: -DskipTests=true
-
-# Verify Artifact
-- script: |
-    mvn -Drevision=$(MAVEN_REVISION) verify
-  displayName: 'Verify the artifact/package'
-  env:
-    MAVEN_OPTS: -DskipTests=true
-
 # Copy WAR to Artifact Staging Directory
 - task: CopyFiles@2
   displayName: 'Copy WAR to Artifact Staging'
@@ -113,16 +95,12 @@ steps:
 # Verify WAR Artifact
 - script: |
     echo "========== WAR CHECK START =========="
-    echo "Artifact Staging Directory:"
     ls -la "$(Build.ArtifactStagingDirectory)"
-
     WAR_FILE=$(find "$(Build.ArtifactStagingDirectory)" -type f -name "*.war" | head -1)
-
     if [ -z "$WAR_FILE" ]; then
       echo "ERROR: WAR file not found."
       exit 1
     fi
-
     echo "WAR file found:"
     echo "$WAR_FILE"
     echo "========== WAR CHECK END =========="
@@ -142,21 +120,15 @@ steps:
   inputs:
     artifactsFeeds: '$(azureArtifactsFeed)'
 
-# Deploy the Maven project to the Azure Artifacts feed.
-# This uses the feed's Maven credentials instead of a manual deploy-file upload.
+# Deploy Maven Package to Azure Artifacts
 - script: |
     echo "========== Azure Artifacts Deploy START =========="
-    set -e
-
     echo "Feed: $(azureArtifactsFeed)"
-    echo "Version: $(MAVEN_REVISION)"
-
-    mvn -Drevision=$(MAVEN_REVISION) deploy -DskipTests=true
-
+    echo "Maven Version: $(MAVEN_REVISION)"
+    mvn deploy -DskipTests=true
+    echo "Maven package deployed successfully."
     echo "========== Azure Artifacts Deploy END =========="
-  displayName: 'Deploy Maven artifacts to Azure Artifacts Feed'
-  env:
-    MAVEN_OPTS: -DskipTests=true
+  displayName: 'Deploy Maven Package to Azure Artifacts Feed'
 
 #scripting options-2 form validation (no need to add validation 
 #heare because Mavaen is advance tool if we justmention the step3 then it auto run the step1&2 post that run step3)
