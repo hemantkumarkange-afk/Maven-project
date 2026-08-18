@@ -96,39 +96,39 @@ steps:
   displayName: 'Verify WAR Artifact'
 
 # Upload WAR to Azure Blob Storage
-- task: AzureCLI@2
-  displayName: 'Upload WAR to Azure Blob Storage'
-  inputs:
-    azureSubscription: 'Azure-Portal-Service-Connection'
-    scriptType: 'bash'
-    scriptLocation: 'inlineScript'
-    inlineScript: |
-      echo "========== Azure Blob Upload START =========="
-      set -e
+#- task: AzureCLI@2
+  #displayName: 'Upload WAR to Azure Blob Storage'
+  #inputs:
+    #azureSubscription: 'Azure-Portal-Service-Connection'
+    #scriptType: 'bash'
+    #scriptLocation: 'inlineScript'
+    #inlineScript: |
+      #echo "========== Azure Blob Upload START =========="
+      #set -e
 
-      WAR_COUNT=$(find "$(Build.ArtifactStagingDirectory)" -type f -name "*.war" | wc -l)
+      #WAR_COUNT=$(find "$(Build.ArtifactStagingDirectory)" -type f -name "*.war" | wc -l)
 
-      if [ "$WAR_COUNT" -eq 0 ]; then
-        echo "ERROR: No WAR file found."
-        exit 1
-      fi
+      #if [ "$WAR_COUNT" -eq 0 ]; then
+        #echo "ERROR: No WAR file found."
+        #exit 1
+      #fi
 
-      echo "WAR files found: $WAR_COUNT"
+      #echo "WAR files found: $WAR_COUNT"
 
-      az storage container create \
-        --name "$(containerName)" \
-        --account-name "$(storageAccountName)" \
-        --auth-mode login
+      #az storage container create \
+        #--name "$(containerName)" \
+        #--account-name "$(storageAccountName)" \
+        #--auth-mode login
 
-      az storage blob upload-batch \
-        --account-name "$(storageAccountName)" \
-        --destination "$(containerName)" \
-        --source "$(Build.ArtifactStagingDirectory)" \
-        --pattern "*.war" \
-        --auth-mode login \
-        --overwrite true
+      #az storage blob upload-batch \
+        #-account-name "$(storageAccountName)" \
+        #--destination "$(containerName)" \
+        #--source "$(Build.ArtifactStagingDirectory)" \
+        #--pattern "*.war" \
+        #--auth-mode login \
+        #--overwrite true
 
-      echo "========== Azure Blob Upload END =========="
+      #echo "========== Azure Blob Upload END =========="
 
 # Publish Azure DevOps Pipeline Artifact
 - task: PublishBuildArtifacts@1
@@ -185,7 +185,7 @@ steps:
     EOF
     echo "Temporary POM created at $(Build.ArtifactStagingDirectory)/upload-pom.xml"
 
-    # Determine Maven settings path (MavenAuthenticate may write to a variable or default ~/.m2/settings.xml)
+    # Determine Maven settings path (MavenAuthenticate may write to a variable or default ~/.m2/settings.xml
     SETTINGS_FILE="$MAVEN_SETTINGS_PATH"
     if [ -z "$SETTINGS_FILE" ] || [ ! -f "$SETTINGS_FILE" ]; then
       if [ -f "$HOME/.m2/settings.xml" ]; then
