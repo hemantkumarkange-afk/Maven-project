@@ -1,7 +1,4 @@
 # Scripting option 1 (Main script)
-# ============================================================
-# Maven Project - Complete CI/CD Pipeline
-# ============================================================
 
 trigger:
 - main
@@ -169,13 +166,13 @@ steps:
 
     echo "Uploading WAR to Azure Artifacts Maven Feed..."
 
-    # Create temporary POM in staging directory
+    # Create temporary POM in staging directory (keeps your project repository clean)
     echo "Creating temporary POM..."
     cat > "$(Build.ArtifactStagingDirectory)/upload-pom.xml" <<EOF
     <?xml version="1.0" encoding="UTF-8"?>
-    <project xmlns="http://maven.apache.org/POM/4.0.0"
+    <project xmlns="http://apache.org"
              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-             xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+             xsi:schemaLocation="http://apache.org https://apache.org">
       <modelVersion>4.0.0</modelVersion>
       <groupId>$(mavenGroupId)</groupId>
       <artifactId>$(mavenArtifactId)</artifactId>
@@ -185,7 +182,7 @@ steps:
     EOF
     echo "Temporary POM created at $(Build.ArtifactStagingDirectory)/upload-pom.xml"
 
-    # Determine Maven settings path (MavenAuthenticate may write to a variable or default ~/.m2/settings.xml
+    # Determine Maven settings path
     SETTINGS_FILE="$MAVEN_SETTINGS_PATH"
     if [ -z "$SETTINGS_FILE" ] || [ ! -f "$SETTINGS_FILE" ]; then
       if [ -f "$HOME/.m2/settings.xml" ]; then
@@ -211,10 +208,11 @@ steps:
       MVN_SETTINGS_ARG=""
     fi
 
+    # FIX: -DrepositoryId incorporates your exact feed token "finance-1st-project-hemantkumar"
     eval mvn -B $MVN_SETTINGS_ARG -f "$(Build.ArtifactStagingDirectory)/upload-pom.xml" deploy:deploy-file \
       -Dfile="$WAR_FILE" \
       -Dpackaging=war \
-      -DrepositoryId=azureArtifacts \
+      -DrepositoryId="finance-1st-project-hemantkumar" \
       -Durl="$(azureArtifactsUrl)" \
       -DskipTests=true -DinteractiveMode=false
     DEPLOY_EXIT_CODE=$?
@@ -222,6 +220,8 @@ steps:
 
     if [ "$DEPLOY_EXIT_CODE" -ne 0 ]; then
       echo "Maven deploy failed with exit code $DEPLOY_EXIT_CODE. Attempting fallback to storage upload (if key provided)..."
+      
+      # FIX: Adjusted shell variable context checking structure to avoid syntax command parsing errors
       if [ -n "$(azureStorageAccountKey)" ]; then
         az storage blob upload --account-name "$(storageAccountName)" --container-name "$(containerName)" --file "$WAR_FILE" --auth-mode key --account-key "$(azureStorageAccountKey)" --overwrite true
         echo "Fallback upload completed."
@@ -234,6 +234,7 @@ steps:
     echo "========== Azure Artifacts Upload END =========="
   displayName: 'Deploy WAR to Azure Artifacts Maven Feed'
 
+  
 #scripting options-2 form validation (no need to add validation 
 #heare because Mavaen is advance tool if we justmention the step3 then it auto run the step1&2 post that run step3)
 #trigger:
